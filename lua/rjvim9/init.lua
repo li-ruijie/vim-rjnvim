@@ -1,6 +1,3 @@
--- rjvim9.lua - Neovim Lua conversion of rjvim9.vim
--- A collection of utility functions for Neovim
-
 local M = {}
 
 -- Global variables for state management
@@ -121,94 +118,32 @@ function M.app_conceal_automode(switch)
     end
 end
 
--- App_fontsize: Font size adjustment
+-- App_fontsize: Font size adjustment (Neovide-specific)
 function M.app_fontsize(adjust)
-    -- Set defaults
-    if not vim.g['rjvim9#defaultguifont'] and vim.o.guifont ~= '' then
-        vim.g['rjvim9#defaultguifont'] = vim.o.guifont
-    end
-    if not vim.g['rjvim9#defaultguifontwide'] and vim.o.guifontwide ~= '' then
-        vim.g['rjvim9#defaultguifontwide'] = vim.o.guifontwide
-    end
-
-    if adjust == 'default' then
-        M._app_fontsize_restore()
-    else
-        M._app_fontsize_change(adjust)
-    end
-end
-
--- Internal function to restore default font size
-function M._app_fontsize_restore()
-    if vim.g['rjvim9#defaultguifont'] then
-        vim.o.guifont = vim.g['rjvim9#defaultguifont']
-    end
-    if vim.g['rjvim9#defaultguifontwide'] then
-        vim.o.guifontwide = vim.g['rjvim9#defaultguifontwide']
-    end
-end
-
--- Internal function to change font size
-function M._app_fontsize_change(adjust)
-    if vim.o.guifont ~= '' then
-        local newsize = vim.o.guifont:gsub(':h(%d+)', function(size)
-            local new_size = tonumber(size)
-            if adjust == '+' then
-                new_size = new_size + 1
-            elseif adjust == '-' then
-                new_size = new_size - 1
+    -- Neovide font size adjustment
+    if vim.g.neovide then
+        if not vim.g['rjvim#defaultneovidescale'] then
+            if vim.g.neovide_scale_factor then
+                vim.g['rjvim#defaultneovidescale'] = vim.g.neovide_scale_factor
             end
-            return ':h' .. new_size
-        end)
-        vim.o.guifont = newsize
-    end
-
-    if vim.o.guifontwide ~= '' then
-        local newsizewide = vim.o.guifontwide:gsub(':h(%d+)', function(size)
-            local new_size = tonumber(size)
-            if adjust == '+' then
-                new_size = new_size + 1
-            elseif adjust == '-' then
-                new_size = new_size - 1
-            end
-            return ':h' .. new_size
-        end)
-        vim.o.guifontwide = newsizewide
-        print(vim.o.guifont .. ',' .. newsizewide)
-    end
-end
-
--- App_guitablabel: GUI tab label customization
-function M.app_guitablabel()
-    local label = ''
-    local bufnrlist = vim.fn.tabpagebuflist(vim.v.lnum)
-
-    -- Add '+' if any buffer in tab is modified
-    for _, bufnr in ipairs(bufnrlist) do
-        if vim.fn.getbufvar(bufnr, '&modified') == 1 then
-            label = '+'
-            break
         end
-    end
-
-    -- Append buffer name
-    local winnr = vim.fn.tabpagewinnr(vim.v.lnum)
-    local bufnr = bufnrlist[winnr]
-    local name = vim.fn.bufname(bufnr)
-
-    -- Give name to no-name documents
-    if name == '' then
-        if vim.bo[bufnr].buftype == 'quickfix' then
-            name = '[Quickfix List]'
+        if adjust == 'default' then
+            if vim.g['rjvim#defaultneovidescale'] then
+                vim.g.neovide_scale_factor = vim.g['rjvim#defaultneovidescale']
+            end
         else
-            name = '[No Name]'
+            local current_scale = vim.g.neovide_scale_factor or 1.0
+            local new_scale
+            if adjust == '+' then
+                new_scale = current_scale + 0.1
+            elseif adjust == '-' then
+                new_scale = current_scale - 0.1
+            else
+                new_scale = current_scale
+            end
+            vim.g.neovide_scale_factor = new_scale
         end
-    else
-        name = vim.fn.fnamemodify(name, ':t')
     end
-
-    label = '[' .. vim.v.lnum .. ':' .. bufnr .. '] ' .. name .. ' ' .. label
-    return label
 end
 
 -- ============================================================================
