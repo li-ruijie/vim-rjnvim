@@ -301,7 +301,7 @@ end
 -- Sys_backupenable: Enable backup system
 function M.sys_backupenable()
     vim.bo.undofile = true
-    vim.bo.backup = true
+    vim.go.backup = true
     local group = vim.api.nvim_create_augroup('enablebackupsprewrite', {clear = true})
     vim.api.nvim_create_autocmd('BufWritePre', {
         group = group,
