@@ -317,12 +317,12 @@ function M._setup_backup()
     if vim.fn.empty(vim.fn.glob(backupdir)) == 1 then
         vim.fn.mkdir(backupdir, 'p')
     end
-    vim.bo.backupdir = backupdir
+    vim.o.backupdir = backupdir
 
     local fileftime = vim.fn.getftime(filename)
     local tformat = '%Y%m%d%H%M%S'
     local backup_ext = fileftime == -1 and vim.fn.strftime(tformat) or vim.fn.strftime(tformat, fileftime)
-    vim.bo.backupext = '.' .. backup_ext
+    vim.o.backupext = '.' .. backup_ext
 end
 
 -- Sys_info: System information detection
