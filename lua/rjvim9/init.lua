@@ -254,12 +254,28 @@ end
 
 -- Ft_templates: Template handling
 function M.ft_templates()
-    local template = M._get_template_fn(vim.fn.expand('%:e'))
-    if not vim.fn.filereadable(template) then
+    -- Skip for special buffers (preview, help, quickfix, etc.)
+    if vim.bo.buftype ~= '' then
         return
     end
 
-    local insert = vim.fn.readfile(template)
+    -- Skip if buffer has no name or unusual name
+    local bufname = vim.fn.expand('%')
+    if bufname == '' or bufname:match('^%[') then
+        return
+    end
+
+    local template = M._get_template_fn(vim.fn.expand('%:e'))
+    if not vim.fn.filereadable(template) or template == '' then
+        return
+    end
+
+    -- Protected call to handle any file reading errors
+    local ok, insert = pcall(vim.fn.readfile, template)
+    if not ok then
+        return
+    end
+
     vim.fn.appendbufline(vim.fn.bufnr(), 0, insert)
     vim.bo.fileformat = M._get_ff(template)
 end
