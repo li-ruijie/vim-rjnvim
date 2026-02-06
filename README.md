@@ -203,4 +203,4 @@ vim.api.nvim_create_autocmd('BufEnter', {
 
 ## License
 
-MIT
+GPL-3.0
