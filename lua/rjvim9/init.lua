@@ -163,9 +163,11 @@ end
 function M.fmt_breakonperiod()
     M.fmt_formattext_long()
     local save_pos = vim.fn.getcurpos()
-    vim.cmd('silent! s/\\. /.\\r/e')
+    -- add g so every sentence is split, not only the first
+    vim.cmd('silent! s/\\. /.\\r/ge')
     vim.fn.setpos('.', save_pos)
-    vim.cmd('silent! DTWS')
+    -- scope to the split paragraph (a bare DTWS spans the whole buffer)
+    vim.cmd("silent! '{,'}DTWS")
 end
 
 -- Fmt_fixfileformat: Fix file format issues
