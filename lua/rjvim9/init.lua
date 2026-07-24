@@ -203,7 +203,8 @@ function M.fmt_formattext_long()
     vim.cmd('silent! normal! gwap')
     vim.cmd('silent! s/\\s\\s\\+/ /e')
     vim.cmd('silent! s/\\(\\.\\)\\( \\u\\l\\)/\\1 \\2/e')
-    vim.cmd('silent! DTWS')
+    -- scope to the current line (a bare DTWS spans the whole buffer)
+    vim.cmd('silent! .DTWS')
     vim.bo.textwidth = orig_textwidth
     vim.fn.setpos('.', save_pos)
 end
