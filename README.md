@@ -5,7 +5,7 @@ A Neovim Lua port of [vim-rjvim](https://github.com/li-ruijie/vim-rjvim), provid
 ## Features
 
 ### Application Functions (App_*)
-- **Colorscheme Management**: Safe colorscheme switching with highlight link preservation
+- **Colorscheme Management**: Colorscheme switching that preserves highlight links
 - **Font Size Control**: Dynamic font size adjustment in GUI mode
 - **Color Scheme Cycling**: Navigate through available colorschemes
 - **Conceal Auto Mode**: Automatic conceal level management during insert mode
@@ -30,7 +30,7 @@ A Neovim Lua port of [vim-rjvim](https://github.com/li-ruijie/vim-rjvim), provid
 ### Utility Functions (Ut_*)
 - **Line Numbering**: Add line numbers to text
 - **Separator Generation**: Generate comment separators
-- **Variable Initialization**: Safe variable initialization
+- **Variable Initialization**: Set a variable only when it is not already defined
 - **Multi-function Application**: Apply multiple functions in sequence
 - **Spell Checking**: Quick spell correction
 - **DTWS (Delete Trailing WhiteSpace)**: Comprehensive trailing whitespace management
@@ -203,4 +203,4 @@ vim.api.nvim_create_autocmd('BufEnter', {
 
 ## License
 
-GPL-3.0
+AGPL-3.0
