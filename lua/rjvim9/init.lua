@@ -321,7 +321,7 @@ function M.ft_templates()
     end
 
     local template = M._get_template_fn(vim.fn.expand('%:e'))
-    if not vim.fn.filereadable(template) or template == '' then
+    if vim.fn.filereadable(template) == 0 then
         return
     end
 
@@ -335,28 +335,17 @@ function M.ft_templates()
     vim.bo.fileformat = M._get_ff(template)
 end
 
--- Internal function to get file format
+-- Internal function to get file format, from the byte before the first line
+-- feed in the first 1024 bytes of the file
 function M._get_ff(file)
-    local file_bytes = vim.fn.readblob(vim.fn.fnameescape(vim.fn.expand(file)))
-    local file_str = vim.fn.string(file_bytes)
-    local bytes = vim.split(file_str, '..\\zs')
-
-    local fileindex = 0
-    local cont = true
-    local filelen = #bytes
-    local filelenbrk = filelen > 80 and math.floor(filelen / 2) or filelen
-
-    while cont do
-        local check = bytes[fileindex + 1] == '0A'
-        if check or fileindex >= filelenbrk then
-            cont = false
-        else
-            fileindex = fileindex + 1
-        end
+    local handle = io.open(vim.fn.expand(file), 'rb')
+    if not handle then
+        return 'unix'
     end
-
-    local fileformat = bytes[fileindex] == '0D' and 'dos' or 'unix'
-    return fileformat
+    local head = handle:read(1024) or ''
+    handle:close()
+    local nl = head:find('\n', 1, true)
+    return nl and head:sub(nl - 1, nl - 1) == '\r' and 'dos' or 'unix'
 end
 
 -- Internal function to get template filename
