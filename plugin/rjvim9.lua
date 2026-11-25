@@ -62,23 +62,11 @@ vim.api.nvim_create_autocmd('BufWritePre', {
 })
 -- }}
 -- DTWS Command {{
-local is_modified = false
-local function before_dtws()
-    is_modified = vim.bo.modified
-end
-local function after_dtws()
-    if not is_modified then
-        vim.bo.modified = false
-    end
-end
+-- ut_dtws_delete() rewrites only the lines it strips, so the buffer becomes
+-- modified exactly when the command changes a line. A command that changes
+-- nothing leaves the flag, the undo history, and b:changedtick as they were.
 vim.api.nvim_create_user_command('DTWS', function(opts)
-    before_dtws()
-    -- Force buffer modification detection
-    local line1 = opts.line1
-    local line2 = opts.line2
-    vim.fn.setline(line1, vim.fn.getline(line1))
-    after_dtws()
-    rjvim9.ut_dtws_delete(line1, line2)
+    rjvim9.ut_dtws_delete(opts.line1, opts.line2)
 end, {
     range = '%',
     bar = true,
