@@ -230,7 +230,15 @@ function M.fmt_formattext_short()
     -- An insert-mode cursor past the end of the line comes back from gw on
     -- the last character, so step it over that character again.
     local pastend = vim.fn.col('.') > #vim.fn.getline('.')
+    -- gw breaks a line where the virtual column passes 'textwidth', and under
+    -- 'wrap' that column counts the 'showbreak' text and the 'breakindent'
+    -- indent of every screen row the joined line has wrapped onto. In a
+    -- window narrower than the text the lines would come out short of
+    -- g:textwidth, so wrapping is off while it runs.
+    local orig_wrap = vim.wo.wrap
+    vim.wo[0][0].wrap = false
     local ok, err = format_paragraph(vim.g.textwidth or 80)
+    vim.wo[0][0].wrap = orig_wrap
     if not ok then
         error(err, 0)
     end
