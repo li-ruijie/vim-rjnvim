@@ -310,14 +310,23 @@ local function tex_joins(a, b)
         or tex_alone:match_str(a) or tex_alone:match_str(b))
 end
 
+-- Return the line of the first \begin{document}, or 0 in a file without one,
+-- such as a chapter read with \input. The lines above it are the preamble.
+-- They hold declarations, which are code, so joining \documentclass and
+-- \usepackage lines or wrapping a definition would only harm them.
+local function tex_body_start()
+    return vim.fn.match(vim.fn.getline(1, '$'), [[\C^\s*\\begin\s*{document}]]) + 1
+end
+
 -- Fmt_formattext_tex: Reformat the LaTeX block under the cursor using
 -- g:textwidth. A bare gwap takes the whole blank-line paragraph, joining
 -- \begin, \end, and \item lines into the text. Find the block the way
 -- vimtex's formatter does, isolate it with blank lines, and format it with
--- gw, which keeps the cursor in place.
+-- gw, which keeps the cursor in place. A line of the preamble is left as it
+-- is, like a line that stands alone.
 function M.fmt_formattext_tex()
     local lnum = vim.fn.line('.')
-    if tex_alone:match_str(vim.fn.getline(lnum)) then
+    if tex_alone:match_str(vim.fn.getline(lnum)) or lnum < tex_body_start() then
         return
     end
     local top, bottom, last = lnum, lnum, vim.fn.line('$')
