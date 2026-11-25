@@ -166,12 +166,18 @@ end
 -- Fmt_breakonperiod: Break text on periods
 function M.fmt_breakonperiod()
     M.fmt_formattext_long()
-    local save_pos = vim.fn.getcurpos()
-    -- add g so every sentence is split, not only the first
-    vim.cmd('silent! s/\\. /.\\r/ge')
-    vim.fn.setpos('.', save_pos)
-    -- scope to the split paragraph (a bare DTWS spans the whole buffer)
-    vim.cmd("silent! '{,'}DTWS")
+    local lnum, col = vim.fn.line('.'), vim.fn.col('.')
+    -- Split in Lua. A :substitute would follow the user's 'gdefault', which
+    -- inverts the g flag and splits the first sentence only.
+    local joined = vim.fn.getline(lnum):gsub('%. ', '.\n')
+    local sentences = vim.split(joined, '\n', { plain = true })
+    if #sentences > 1 then
+        for i, sentence in ipairs(sentences) do
+            sentences[i] = sentence:gsub('%s+$', '')
+        end
+        vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, sentences)
+        vim.fn.cursor(lnum, col)
+    end
 end
 
 -- Fmt_fixfileformat: Fix file format issues
@@ -193,45 +199,87 @@ function M.fmt_fixfileformat()
     end
 end
 
+-- Collapse each run of blanks after the indent of text to one space
+local function one_space(text)
+    return (text:gsub('(%S)%s%s+', '%1 '))
+end
+
+-- Reformat the current paragraph with gw at the given textwidth. An operator
+-- in a closed fold takes the whole fold, so folding is off while it runs, and
+-- joined lines get one space after a sentence end.
+local function format_paragraph(textwidth)
+    local orig_textwidth = vim.bo.textwidth
+    local orig_foldenable = vim.wo.foldenable
+    local orig_joinspaces = vim.o.joinspaces
+    vim.bo.textwidth = textwidth
+    vim.wo[0][0].foldenable = false
+    vim.o.joinspaces = false
+    local ok, err = pcall(vim.cmd, 'normal! gwap')
+    vim.bo.textwidth = orig_textwidth
+    vim.wo[0][0].foldenable = orig_foldenable
+    vim.o.joinspaces = orig_joinspaces
+    return ok, err
+end
+
 -- Fmt_formattext_short: Format text with short width
 function M.fmt_formattext_short()
-    local orig_textwidth = vim.bo.textwidth
-    vim.bo.textwidth = vim.g.textwidth or 80
-    vim.cmd('normal! gwap')
-    vim.bo.textwidth = orig_textwidth
+    -- An insert-mode cursor past the end of the line comes back from gw on
+    -- the last character, so step it over that character again.
+    local pastend = vim.fn.col('.') > #vim.fn.getline('.')
+    local ok, err = format_paragraph(vim.g.textwidth or 80)
+    if not ok then
+        error(err, 0)
+    end
+    if pastend then
+        vim.fn.setcursorcharpos(vim.fn.line('.'), vim.fn.charcol('.') + 1)
+    end
 end
 
--- Fmt_formattext_long: Format text with long width
+-- Fmt_formattext_long: Join the paragraph into one long line, with one space
+-- between words and after each sentence, and no trailing whitespace
 function M.fmt_formattext_long()
-    local save_pos = vim.fn.getcurpos()
-    local orig_textwidth = vim.bo.textwidth
-    vim.bo.textwidth = 800000000
-    vim.cmd('silent! normal! gwap')
-    vim.cmd('silent! s/\\s\\s\\+/ /e')
-    vim.cmd('silent! s/\\(\\.\\)\\( \\u\\l\\)/\\1 \\2/e')
-    -- scope to the current line (a bare DTWS spans the whole buffer)
-    vim.cmd('silent! .DTWS')
-    vim.bo.textwidth = orig_textwidth
-    vim.fn.setpos('.', save_pos)
+    format_paragraph(800000000)
+    -- gw keeps the cursor on the same text, which is now on the joined line.
+    -- A position saved before the join would name a line further down, in
+    -- the next paragraph whenever the cursor started below the first line.
+    local lnum = vim.fn.line('.')
+    local text = vim.fn.getline(lnum)
+    local before = text:sub(1, vim.fn.col('.') - 1)
+    local tidy = one_space(text):gsub('%s+$', '')
+    -- only this line is rewritten, and only when it changes (touching more
+    -- forces a full-buffer fold recompute under foldmethod=expr)
+    if tidy ~= text then
+        vim.fn.setline(lnum, tidy)
+    end
+    vim.fn.cursor(lnum, #one_space(before) + 1)
 end
 
--- Fmt_formattext_isolated: Format text with isolation
+-- Fmt_formattext_isolated: Format the current line as a paragraph of its own
 function M.fmt_formattext_isolated()
-    local save_pos = vim.fn.getcurpos()
-    M.fmt_insert_blank('updown')
+    if vim.fn.getline('.'):match('^%s*$') then
+        return
+    end
+    local lnum = vim.fn.line('.')
+    -- Blank lines added around the line keep gwap from reaching past it, and
+    -- are removed again afterwards.
+    vim.fn.append(lnum, '')
+    vim.fn.append(lnum - 1, '')
     M.fmt_formattext_short()
-    vim.cmd('normal! {dd}dd')
-    vim.fn.setpos('.', save_pos)
+    -- gw leaves the cursor in the block, so the first blank line below it is
+    -- the one added under the block.
+    vim.fn.deletebufline(vim.fn.bufnr(), vim.fn.search([[^\s*$]], 'nW'))
+    vim.fn.deletebufline(vim.fn.bufnr(), lnum)
 end
 
 -- Fmt_insert_blank: Insert blank lines
 function M.fmt_insert_blank(mode)
     local lnum = vim.fn.line('.')
-    if mode == 'up' or mode == 'updown' then
-        vim.fn.append(lnum - 1, '')
-    end
+    -- Insert below first, since inserting above moves the line down.
     if mode == 'down' or mode == 'updown' then
         vim.fn.append(lnum, '')
+    end
+    if mode == 'up' or mode == 'updown' then
+        vim.fn.append(lnum - 1, '')
     end
 end
 
