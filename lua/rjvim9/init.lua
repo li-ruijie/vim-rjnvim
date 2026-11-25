@@ -100,26 +100,29 @@ end
 -- App_conceal_automode: Auto conceal mode management
 function M.app_conceal_automode(switch)
     local switch_val = switch == 2 and 0 or switch
-    if switch_val == 0 then
+    if switch_val == 0 or vim.wo.conceallevel == 0 then
         return
     end
 
-    if vim.wo.conceallevel ~= 0 then
-        local conceallevel_init = vim.wo.conceallevel
-        local group = vim.api.nvim_create_augroup('insertmode_conceal', {clear = true})
-        vim.api.nvim_create_autocmd('InsertEnter', {
-            group = group,
-            callback = function()
-                vim.wo.conceallevel = 0
-            end
-        })
-        vim.api.nvim_create_autocmd('InsertLeave', {
-            group = group,
-            callback = function()
-                vim.wo.conceallevel = conceallevel_init
-            end
-        })
-    end
+    -- Scoped to this buffer, so insert mode elsewhere keeps its own level.
+    local conceallevel_init = vim.wo.conceallevel
+    local bufnr = vim.api.nvim_get_current_buf()
+    local group = vim.api.nvim_create_augroup('insertmode_conceal', {clear = false})
+    vim.api.nvim_clear_autocmds({group = group, buffer = bufnr})
+    vim.api.nvim_create_autocmd('InsertEnter', {
+        group = group,
+        buffer = bufnr,
+        callback = function()
+            vim.wo[0][0].conceallevel = 0
+        end
+    })
+    vim.api.nvim_create_autocmd('InsertLeave', {
+        group = group,
+        buffer = bufnr,
+        callback = function()
+            vim.wo[0][0].conceallevel = conceallevel_init
+        end
+    })
 end
 
 -- App_fontsize: Font size adjustment (Neovide-specific)
