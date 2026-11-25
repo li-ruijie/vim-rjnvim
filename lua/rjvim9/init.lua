@@ -258,21 +258,68 @@ function M.fmt_formattext_long()
     vim.fn.cursor(lnum, #one_space(before) + 1)
 end
 
+-- Format lines top..bottom, which hold the cursor, as one paragraph. Blank
+-- lines added around them keep gwap from reaching past them, and are removed
+-- again afterwards.
+local function format_isolated(top, bottom)
+    vim.fn.append(bottom, '')
+    vim.fn.append(top - 1, '')
+    M.fmt_formattext_short()
+    -- gw leaves the cursor in the block, so the first blank line below it is
+    -- the one added under the block.
+    vim.fn.deletebufline(vim.fn.bufnr(), vim.fn.search([[^\s*$]], 'nW'))
+    vim.fn.deletebufline(vim.fn.bufnr(), top)
+end
+
 -- Fmt_formattext_isolated: Format the current line as a paragraph of its own
 function M.fmt_formattext_isolated()
     if vim.fn.getline('.'):match('^%s*$') then
         return
     end
+    format_isolated(vim.fn.line('.'), vim.fn.line('.'))
+end
+
+-- The three patterns below are the Vim regular expressions of the Vim9
+-- plugin, so both editors find the same block. vim.regex() matches with case,
+-- whatever 'ignorecase' says.
+
+-- A line that opens a block, which is vimtex's g:vimtex_format_border_begin
+-- plus \caption and the run-in \paragraph heading.
+local tex_opens = vim.regex([[\v^\s*%(\\%(item|begin|end|caption|paragraph)|%(\\\[|\$\$)\s*$)]])
+-- A line that closes its block, taken from vimtex's
+-- g:vimtex_format_border_end.
+local tex_closes = vim.regex([[\v\\%(\\\*?|clear%(double)?page|linebreak|new%(line|page)|pagebreak]]
+    .. [[|%(begin|end)\{[^}]*\})\s*$|^\s*%(\\\]|\$\$)\s*$]])
+-- A line that joins neither neighbour, namely a blank line, a comment (text
+-- joined after it would be commented out), a heading or \label, or a bare
+-- command such as \noindent.
+local tex_alone = vim.regex([[\v^\s*$|%(^|[^\\])\%|^\s*\\%(%(sub){,2}section|chapter|part|label)>]]
+    .. [[|^\s*\\\a+\*?\s*$]])
+
+-- Return whether LaTeX line a can be joined with line b below it.
+local function tex_joins(a, b)
+    return not (tex_closes:match_str(a) or tex_opens:match_str(b)
+        or tex_alone:match_str(a) or tex_alone:match_str(b))
+end
+
+-- Fmt_formattext_tex: Reformat the LaTeX block under the cursor using
+-- g:textwidth. A bare gwap takes the whole blank-line paragraph, joining
+-- \begin, \end, and \item lines into the text. Find the block the way
+-- vimtex's formatter does, isolate it with blank lines, and format it with
+-- gw, which keeps the cursor in place.
+function M.fmt_formattext_tex()
     local lnum = vim.fn.line('.')
-    -- Blank lines added around the line keep gwap from reaching past it, and
-    -- are removed again afterwards.
-    vim.fn.append(lnum, '')
-    vim.fn.append(lnum - 1, '')
-    M.fmt_formattext_short()
-    -- gw leaves the cursor in the block, so the first blank line below it is
-    -- the one added under the block.
-    vim.fn.deletebufline(vim.fn.bufnr(), vim.fn.search([[^\s*$]], 'nW'))
-    vim.fn.deletebufline(vim.fn.bufnr(), lnum)
+    if tex_alone:match_str(vim.fn.getline(lnum)) then
+        return
+    end
+    local top, bottom, last = lnum, lnum, vim.fn.line('$')
+    while top > 1 and tex_joins(vim.fn.getline(top - 1), vim.fn.getline(top)) do
+        top = top - 1
+    end
+    while bottom < last and tex_joins(vim.fn.getline(bottom), vim.fn.getline(bottom + 1)) do
+        bottom = bottom + 1
+    end
+    format_isolated(top, bottom)
 end
 
 -- Fmt_insert_blank: Insert blank lines

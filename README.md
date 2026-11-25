@@ -13,7 +13,7 @@ A Neovim Lua port of [vim-rjvim](https://github.com/li-ruijie/vim-rjvim), provid
 
 ### Text Formatting Functions (Fmt_*)
 - **Auto Format Toggle**: Toggle automatic text formatting
-- **Text Formatting**: Multiple text formatting modes (short, long, isolated)
+- **Text Formatting**: Multiple text formatting modes (short, long, isolated, LaTeX block)
 - **Line Breaking**: Break text at periods
 - **File Format Fixing**: Resolve file format issues
 - **Blank Line Insertion**: Insert blank lines above/below cursor
@@ -88,6 +88,7 @@ The plugin provides numerous commands:
 - `:RjvimFormatTextShort` - Format text with short width
 - `:RjvimFormatTextLong` - Format text with long width
 - `:RjvimFormatTextIsolated` - Format text with isolation
+- `:RjvimFormatTextTex` - Format the LaTeX block under the cursor
 - `:RjvimAutoFormatToggle` - Toggle auto formatting
 - `:RjvimBreakOnPeriod` - Break text on periods
 - `:RjvimFixFileFormat` - Fix file format issues
