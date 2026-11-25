@@ -447,7 +447,12 @@ end
 
 -- Sys_insertmute_move: Muted movement in insert mode
 function M.sys_insertmute_move(motion)
-    return M.sys_insertmute_on(motion) .. M.sys_insertmute_off()
+    -- The returned keys run after this function has returned, so the events
+    -- are unmuted from a timer, which fires once Neovim is idle again. Keys
+    -- appended to the motion could not do it, since a motion that fails (gj
+    -- on the last line) discards the rest of its mapping.
+    vim.defer_fn(M.sys_insertmute_off, 0)
+    return M.sys_insertmute_on(motion)
 end
 
 -- ============================================================================
