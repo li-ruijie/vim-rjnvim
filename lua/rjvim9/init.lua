@@ -54,26 +54,29 @@ end
 
 -- App_colourssw_switchcolours: Color scheme cycling
 function M.app_colourssw_switchcolours(dir)
-    if not vim.g.colourssw_combi then
-        vim.g.colourssw_combi = {}
-        local colorschemes = vim.fn.getcompletion('', 'color')
-        for _, colorscheme in ipairs(colorschemes) do
+    -- vim.g hands out a copy on every read, so the list is built in a local
+    -- and stored whole. Inserting into vim.g.colourssw_combi changes nothing.
+    local combi = vim.g.colourssw_combi
+    if not combi then
+        combi = {}
+        for _, colorscheme in ipairs(vim.fn.getcompletion('', 'color')) do
             for _, bg in ipairs({'dark', 'light'}) do
-                table.insert(vim.g.colourssw_combi, {colorscheme, bg})
+                table.insert(combi, {colorscheme, bg})
             end
         end
+        vim.g.colourssw_combi = combi
     end
 
+    local current = {vim.g.colors_name, vim.o.background}
     if not vim.g.colourssw_default then
-        vim.g.colourssw_default = {vim.g.colors_name, vim.o.background}
+        vim.g.colourssw_default = current
     end
 
-    vim.g.colourssw_current = {vim.g.colors_name, vim.o.background}
-
-    -- Find current index
-    local current_ind = 0
-    for i, combo in ipairs(vim.g.colourssw_combi) do
-        if combo[1] == vim.g.colourssw_current[1] and combo[2] == vim.g.colourssw_current[2] then
+    -- Find current index, starting from the first entry when the current
+    -- scheme was changed externally and is not in the list
+    local current_ind = 1
+    for i, combo in ipairs(combi) do
+        if combo[1] == current[1] and combo[2] == current[2] then
             current_ind = i
             break
         end
@@ -81,16 +84,17 @@ function M.app_colourssw_switchcolours(dir)
 
     -- Calculate next index
     if dir == '+' then
-        current_ind = current_ind == #vim.g.colourssw_combi and 1 or current_ind + 1
+        current_ind = current_ind == #combi and 1 or current_ind + 1
     else
-        current_ind = current_ind == 1 and #vim.g.colourssw_combi or current_ind - 1
+        current_ind = current_ind == 1 and #combi or current_ind - 1
     end
 
-    vim.g.colourssw_current = vim.g.colourssw_combi[current_ind]
-    M.app_colourscheme_switchsafe(vim.g.colourssw_current[1])
-    vim.o.background = vim.g.colourssw_current[2]
+    current = combi[current_ind]
+    vim.g.colourssw_current = current
+    M.app_colourscheme_switchsafe(current[1])
+    vim.o.background = current[2]
     vim.cmd('redraw')
-    print(vim.inspect(vim.g.colourssw_current))
+    print(vim.inspect(current))
 end
 
 -- App_conceal_automode: Auto conceal mode management
