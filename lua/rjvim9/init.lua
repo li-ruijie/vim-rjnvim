@@ -190,8 +190,7 @@ function M.fmt_fixfileformat()
         return 1
     end
 
-    local result = vim.fn.execute('%s/\\r//en'):gsub('^\\n', '')
-    if result ~= '' then
+    if vim.fn.search('\\r', 'nw') > 0 then
         local fforig = vim.bo.fileformat
         if vim.bo.fileformat == 'dos' then
             vim.bo.fileformat = 'unix'
@@ -199,6 +198,8 @@ function M.fmt_fixfileformat()
         end
         vim.cmd('edit ++fileformat=dos')
         vim.bo.fileformat = fforig
+        -- The file on disk still has the old line endings until it is written.
+        vim.bo.modified = true
     end
 end
 
