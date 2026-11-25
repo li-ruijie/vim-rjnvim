@@ -580,7 +580,8 @@ function M.ut_dtws_isaction()
     if action == 'delete' then
         return true
     elseif action == 'abort' then
-        if not vim.v.cmdbang and M.ut_dtws_hastrailingwhitespace() then
+        -- v:cmdbang is a number, and 0 is true in Lua
+        if vim.v.cmdbang == 0 and M.ut_dtws_hastrailingwhitespace() then
             error('DTWS: Trailing whitespace found, aborting write (add ! to override, or :DTWS to eradicate)')
         end
         return true
@@ -595,7 +596,8 @@ function M.ut_dtws_isset()
     if not value or value == 0 then
         return false
     elseif value == 'always' or value == 1 then
-        return true
+        -- clean, or overridden with a bang, so the buffer is written as it is
+        return false
     else
         return false
     end

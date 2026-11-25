@@ -50,15 +50,14 @@ local dtws_group = vim.api.nvim_create_augroup('DTWS', { clear = true })
 vim.api.nvim_create_autocmd('BufWritePre', {
     group = dtws_group,
     pattern = '*',
-    callback = function()
-        local ok, err = pcall(rjvim9.ut_dtws_interceptwrite)
-        if not ok and err:match('^DTWS:') then
-            vim.api.nvim_echo({{err:gsub('^DTWS:%s*', ''), 'ErrorMsg'}},
-            true, {})
-        elseif not ok then
-            error(err)
-        end
-    end,
+    -- A Vim script command, since only an exception cancels the write. An
+    -- error raised from a Lua callback is reported and the write goes ahead.
+    -- The call goes through :execute, as an error from :call v:lua on the
+    -- same line as its :catch is not caught.
+    command = "try | execute \"lua require('rjvim9').ut_dtws_interceptwrite()\""
+        .. " | catch /DTWS:/"
+        .. " | echoerr matchstr(v:exception, 'DTWS:\\s*\\zs[^\\n]*')"
+        .. " | endtry",
     desc = 'Delete trailing whitespace on write'
 })
 -- }}
