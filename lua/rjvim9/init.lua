@@ -506,11 +506,21 @@ end
 
 -- Sys_insertmute_move: Muted movement in insert mode
 function M.sys_insertmute_move(motion)
-    -- The returned keys run after this function has returned, so the events
-    -- are unmuted from a timer, which fires once Neovim is idle again. Keys
-    -- appended to the motion could not do it, since a motion that fails (gj
-    -- on the last line) discards the rest of its mapping.
-    vim.defer_fn(M.sys_insertmute_off, 0)
+    -- The returned keys run after this function has returned. CTRL-O runs the
+    -- motion in the mode niI (niR and niV from the Replace modes), and the
+    -- events are unmuted when that mode ends, which is after the muted
+    -- InsertEnter of the return and before the next typed key. A motion that
+    -- fails (gj on the last line) ends the mode as well, while keys appended
+    -- to the motion would be discarded with it. A timer fires only once
+    -- Neovim is idle, so an <Esc> typed ahead lost its InsertLeave.
+    vim.api.nvim_create_autocmd('ModeChanged', {
+        group = vim.api.nvim_create_augroup('rjvim9_insertmute', {clear = true}),
+        pattern = 'ni[IRV]:*',
+        once = true,
+        callback = function()
+            M.sys_insertmute_off()
+        end
+    })
     return M.sys_insertmute_on(motion)
 end
 
