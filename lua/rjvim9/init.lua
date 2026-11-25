@@ -176,7 +176,7 @@ function M.fmt_breakonperiod()
     local sentences = vim.split(joined, '\n', { plain = true })
     if #sentences > 1 then
         for i, sentence in ipairs(sentences) do
-            sentences[i] = sentence:gsub('%s+$', '')
+            sentences[i] = sentence:gsub('[ \t]+$', '')
         end
         vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, sentences)
         vim.fn.cursor(lnum, col)
@@ -205,7 +205,7 @@ end
 
 -- Collapse each run of blanks after the indent of text to one space
 local function one_space(text)
-    return (text:gsub('(%S)%s%s+', '%1 '))
+    return (text:gsub('([^ \t])[ \t][ \t]+', '%1 '))
 end
 
 -- Reformat the current paragraph with gw at the given textwidth. An operator
@@ -249,7 +249,7 @@ function M.fmt_formattext_long()
     local lnum = vim.fn.line('.')
     local text = vim.fn.getline(lnum)
     local before = text:sub(1, vim.fn.col('.') - 1)
-    local tidy = one_space(text):gsub('%s+$', '')
+    local tidy = one_space(text):gsub('[ \t]+$', '')
     -- only this line is rewritten, and only when it changes (touching more
     -- forces a full-buffer fold recompute under foldmethod=expr)
     if tidy ~= text then
@@ -465,12 +465,12 @@ end
 
 -- Ut_add_ln: Add line numbers
 function M.ut_add_ln(pad, width)
+    -- width arrives as a string when the caller passes a command argument
+    width = tonumber(width) or 0
     local width_val = width == 0 and vim.fn.strlen(vim.fn.line('$')) or width
     local pad_val = (pad == '' or pad == '0') and pad or '0'
     local format_str = '%' .. pad_val .. width_val .. 'd '
     vim.cmd([[%s/^/\=printf(']] .. format_str .. [[', line('.'))/ ]])
-    -- width arrives as a string when the caller passes a command argument
-    width = tonumber(width) or 0
 end
 
 -- Ut_gensep: Generate separator
@@ -590,7 +590,8 @@ function M.ut_dtws_isaction()
         if vim.v.cmdbang == 0 and M.ut_dtws_hastrailingwhitespace() then
             error('DTWS: Trailing whitespace found, aborting write (add ! to override, or :DTWS to eradicate)')
         end
-        return true
+        -- clean, or overridden with a bang, so the buffer is written as it is
+        return false
     else
         error('ASSERT: Invalid value for DTWS_action: ' .. vim.inspect(action))
     end
