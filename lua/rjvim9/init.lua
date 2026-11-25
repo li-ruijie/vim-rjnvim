@@ -297,11 +297,11 @@ function M.ft_sh_init()
     })
 end
 
--- Internal function for shell script setup
+-- Internal function for shell script setup. Runs inside the FileType
+-- autocmd, so the filetype is already sh and the options are set locally.
 function M._run_ftshinit()
-    vim.bo.filetype = 'sh'
-    vim.wo.foldenable = true
-    vim.wo.foldmethod = 'syntax'
+    vim.wo[0][0].foldenable = true
+    vim.wo[0][0].foldmethod = 'syntax'
     vim.g.is_bash = 1
     vim.g.sh_fold_enabled = 7
     vim.g.sh_no_error = 0
