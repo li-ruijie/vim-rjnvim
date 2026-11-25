@@ -465,6 +465,8 @@ function M.ut_add_ln(pad, width)
     local pad_val = (pad == '' or pad == '0') and pad or '0'
     local format_str = '%' .. pad_val .. width_val .. 'd '
     vim.cmd([[%s/^/\=printf(']] .. format_str .. [[', line('.'))/ ]])
+    -- width arrives as a string when the caller passes a command argument
+    width = tonumber(width) or 0
 end
 
 -- Ut_gensep: Generate separator
