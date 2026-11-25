@@ -358,26 +358,50 @@ end
 -- Sys Functions - System utilities
 -- ============================================================================
 
--- Sys_backupenable: Enable backup system
+-- 'backup', 'backupdir', and 'backupext' as they were before the first call
+-- of sys_backupenable(). All three are global options, so every write sets
+-- them, to these values for a buffer that has not enabled backups.
+local backup_defaults
+
+-- Sys_backupenable: Enable persistent undo and timestamped backups under
+-- .vbak/<filename>/ for the current buffer
 function M.sys_backupenable()
     vim.bo.undofile = true
-    vim.go.backup = true
+    vim.b.rjvim9_backup = true
+    if not backup_defaults then
+        backup_defaults = {
+            backup = vim.o.backup,
+            backupdir = vim.o.backupdir,
+            backupext = vim.o.backupext,
+        }
+    end
     local group = vim.api.nvim_create_augroup('enablebackupsprewrite', {clear = true})
     vim.api.nvim_create_autocmd('BufWritePre', {
         group = group,
         pattern = '*',
-        callback = M._setup_backup
+        callback = function()
+            M._setup_backup()
+        end
     })
 end
 
 -- Internal function to setup backup
 function M._setup_backup()
-    local filename = vim.fn.expand('%')
-    local backupdir = '.vbak/' .. filename
-    if vim.fn.empty(vim.fn.glob(backupdir)) == 1 then
-        vim.fn.mkdir(backupdir, 'p')
+    if not vim.b.rjvim9_backup then
+        vim.o.backup = backup_defaults.backup
+        vim.o.backupdir = backup_defaults.backupdir
+        vim.o.backupext = backup_defaults.backupext
+        return
     end
-    vim.o.backupdir = backupdir
+    vim.o.backup = true
+    local filename = vim.fn.expand('%')
+    -- Anchored on the file's own directory, so the backups land beside the
+    -- file whatever the working directory is.
+    local backupdir = vim.fn.expand('%:p:h') .. '/.vbak/' .. vim.fn.expand('%:t')
+    vim.fn.mkdir(backupdir, 'p')
+    -- 'backupdir' is a comma-separated list, so a comma in the file name
+    -- needs a backslash.
+    vim.o.backupdir = vim.fn.escape(backupdir, ',')
 
     local fileftime = vim.fn.getftime(filename)
     local tformat = '%Y%m%d%H%M%S'
