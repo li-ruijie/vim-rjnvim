@@ -535,10 +535,16 @@ end
 
 -- Ut_DTWS_delete: Delete trailing whitespace
 function M.ut_dtws_delete(start_lnum, end_lnum)
-    local save_cursor = vim.fn.getpos('.')
-    vim.cmd(start_lnum .. ',' .. end_lnum .. 'substitute/' .. vim.fn.escape(M.ut_dtws_pattern(), '/') .. '//e')
-    vim.fn.histdel('search', -1)
-    vim.fn.setpos('.', save_cursor)
+    -- Only lines with trailing whitespace are rewritten, and through the API.
+    -- A :substitute would replace the last search pattern, so 'hlsearch'
+    -- would light up every trailing blank left in the buffer.
+    for lnum = start_lnum, end_lnum do
+        local line = vim.fn.getline(lnum)
+        local stripped = line:gsub('[ \t]+$', '')
+        if stripped ~= line then
+            vim.fn.setline(lnum, stripped)
+        end
+    end
 end
 
 -- Ut_DTWS_get: Get DTWS setting
