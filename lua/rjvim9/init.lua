@@ -593,14 +593,7 @@ end
 -- Ut_DTWS_isset: Check if DTWS is enabled
 function M.ut_dtws_isset()
     local value = M.ut_dtws_get()
-    if not value or value == 0 then
-        return false
-    elseif value == 'always' or value == 1 then
-        -- clean, or overridden with a bang, so the buffer is written as it is
-        return false
-    else
-        return false
-    end
+    return value == 1 or value == true or value == '1' or value == 'always'
 end
 
 -- Ut_DTWS_pattern: Get trailing whitespace pattern
