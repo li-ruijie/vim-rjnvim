@@ -414,9 +414,10 @@ function M.sys_info()
     vim.g.os = M._is_win() and 'windows' or (vim.fn.has('linux') == 1 and 'linux' or 'unknown')
 
     if vim.g.os == 'windows' then
-        vim.g.root = vim.fn.filewritable('C:\\Windows\\System32') == 1 and 1 or 0
+        -- filewritable() returns 2 for a writable directory
+        vim.g.root = vim.fn.filewritable('C:\\Windows\\System32') == 2 and 1 or 0
     else
-        vim.g.root = vim.fn.system('printf "%s" "$USER"'):gsub('%s+', '') == 'root' and 1 or 0
+        vim.g.root = vim.env.USER == 'root' and 1 or 0
     end
 
     vim.g.dirsep = vim.g.os == 'windows' and '\\' or '/'
