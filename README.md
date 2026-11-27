@@ -20,7 +20,7 @@ A Neovim Lua port of [vim-rjvim](https://github.com/li-ruijie/vim-rjvim), provid
 
 ### Filetype Functions (Ft_*)
 - **Shell Script Initialization**: Enhanced shell script file settings
-- **Template System**: File template loading based on file extension
+- **Template System**: Loads the skeleton for the extension into a new file, skipping binary skeletons
 
 ### System Functions (Sys_*)
 - **Backup System**: Advanced backup file management
