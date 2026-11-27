@@ -399,7 +399,13 @@ function M.ft_templates()
         return
     end
 
-    vim.fn.appendbufline(vim.fn.bufnr(), 0, insert)
+    -- A new buffer holds one empty line, which the skeleton replaces, so that
+    -- no empty line is left below it.
+    if vim.fn.line('$') == 1 and vim.fn.getline(1) == '' then
+        vim.fn.setline(1, insert)
+    else
+        vim.fn.appendbufline(vim.fn.bufnr(), 0, insert)
+    end
     vim.bo.fileformat = M._get_ff(template)
 end
 
