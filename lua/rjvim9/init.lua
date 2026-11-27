@@ -393,6 +393,17 @@ function M.ft_templates()
         return
     end
 
+    -- A binary skeleton, such as an Office or Visio file, is no text to put
+    -- in a buffer. A NUL byte near its start shows it.
+    local handle = io.open(template, 'rb')
+    local head = handle and handle:read(1024) or ''
+    if handle then
+        handle:close()
+    end
+    if head:find('\0', 1, true) then
+        return
+    end
+
     -- Protected call to handle any file reading errors
     local ok, insert = pcall(vim.fn.readfile, template)
     if not ok then
